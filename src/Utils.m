@@ -100,7 +100,10 @@
 // Colours
 + (UIColor *)SCIColor_Primary {
     return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
-        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark) ? [UIColor whiteColor] : [UIColor blackColor];
+        // Stealth Anthracite / Graphite for switches: preserves contrast with the white thumb
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor colorWithRed:68/255.0 green:68/255.0 blue:72/255.0 alpha:1.0]
+            : [UIColor colorWithRed:28/255.0 green:28/255.0 blue:30/255.0 alpha:1.0];
     }];
 }
 
