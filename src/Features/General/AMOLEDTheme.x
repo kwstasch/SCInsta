@@ -38,6 +38,14 @@ static inline BOOL isAMOLEDActive(UIView *view) {
     }
 }
 
+- (void)setBackgroundColor:(UIColor *)color {
+    if (isAMOLEDActive(self)) {
+        %orig([UIColor blackColor]);
+        return;
+    }
+    %orig;
+}
+
 %end
 
 %hook UICollectionView
@@ -45,11 +53,51 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)didMoveToWindow {
     %orig;
     if (isAMOLEDActive(self)) {
-        // Do not break custom DM chat thread decorated background view
         id parentVC = [SCIUtils nearestViewControllerForView:self];
         if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) return;
 
         self.backgroundColor = [UIColor blackColor];
+    }
+}
+
+- (void)setBackgroundColor:(UIColor *)color {
+    if (isAMOLEDActive(self)) {
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) {
+            %orig(color);
+            return;
+        }
+        %orig([UIColor blackColor]);
+        return;
+    }
+    %orig;
+}
+
+%end
+
+%hook UITableViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (isAMOLEDActive(self)) {
+        self.backgroundColor = [UIColor blackColor];
+        self.contentView.backgroundColor = [UIColor blackColor];
+    }
+}
+
+%end
+
+%hook UICollectionViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (isAMOLEDActive(self)) {
+        // Exclude message cells inside chat threads
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) return;
+
+        self.backgroundColor = [UIColor blackColor];
+        self.contentView.backgroundColor = [UIColor blackColor];
     }
 }
 
