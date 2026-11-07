@@ -1,4 +1,6 @@
 #import <UIKit/UIKit.h>
+#import <substrate.h>
+#import <dlfcn.h>
 #import "../../Utils.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -9,7 +11,7 @@
 %hook UIColor
 
 + (UIColor *)systemBackgroundColor {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
         return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
             return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
                 ? [UIColor blackColor]
@@ -20,7 +22,7 @@
 }
 
 + (UIColor *)secondarySystemBackgroundColor {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
         return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
             return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
                 ? [UIColor blackColor]
@@ -31,7 +33,7 @@
 }
 
 + (UIColor *)systemGroupedBackgroundColor {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
         return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
             return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
                 ? [UIColor blackColor]
@@ -43,36 +45,43 @@
 
 %end
 
-// Hook Instagram Design System (IGDS) global color functions
-%hookf(UIColor *, _IGDSColorBackgroundPrimary) {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
-        return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
-            return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
-                ? [UIColor blackColor]
-                : [UIColor whiteColor];
-        }];
+// C function hooks inside %group so compile time does not require static extern declarations
+%group IGDSColorFunctionsGroup
+
+%hookf(UIColor *, _IGDSColorBackgroundPrimary, id traitCollection) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
+        return [UIColor blackColor];
     }
-    return %orig;
+    return %orig(traitCollection);
 }
 
-%hookf(UIColor *, _IGDSColorBackgroundSecondary) {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
-        return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
-            return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
-                ? [UIColor blackColor]
-                : %orig;
-        }];
+%hookf(UIColor *, _IGDSColorBackgroundSecondary, id traitCollection) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
+        return [UIColor blackColor];
     }
-    return %orig;
+    return %orig(traitCollection);
 }
 
-%hookf(UIColor *, _IGDSColorBackgroundElevated) {
-    if ([SCIUtils getBoolPref:@"amoled_mode"]) {
-        return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
-            return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
-                ? [UIColor colorWithWhite:0.04 alpha:1.0]
-                : %orig;
-        }];
+%hookf(UIColor *, _IGDSColorBackgroundElevated, id traitCollection) {
+    if ([SCIUtils getBoolPref:@"amoled_mode"] || [SCIUtils getBoolPref:@"amoled_theme"]) {
+        return [UIColor blackColor];
     }
-    return %orig;
+    return %orig(traitCollection);
+}
+
+%end
+
+%ctor {
+    %init;
+
+    void *symPrimary = MSFindSymbol(NULL, "_IGDSColorBackgroundPrimary") ?: MSFindSymbol(NULL, "__IGDSColorBackgroundPrimary") ?: dlsym(RTLD_DEFAULT, "IGDSColorBackgroundPrimary");
+    void *symSecondary = MSFindSymbol(NULL, "_IGDSColorBackgroundSecondary") ?: MSFindSymbol(NULL, "__IGDSColorBackgroundSecondary") ?: dlsym(RTLD_DEFAULT, "IGDSColorBackgroundSecondary");
+    void *symElevated = MSFindSymbol(NULL, "_IGDSColorBackgroundElevated") ?: MSFindSymbol(NULL, "__IGDSColorBackgroundElevated") ?: dlsym(RTLD_DEFAULT, "IGDSColorBackgroundElevated");
+
+    if (symPrimary && symSecondary && symElevated) {
+        %init(IGDSColorFunctionsGroup,
+              _IGDSColorBackgroundPrimary = symPrimary,
+              _IGDSColorBackgroundSecondary = symSecondary,
+              _IGDSColorBackgroundElevated = symElevated);
+    }
 }
