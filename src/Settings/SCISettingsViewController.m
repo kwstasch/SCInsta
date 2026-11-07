@@ -292,6 +292,7 @@ static char rowStaticRef[] = "row";
             UISwitch *toggle = [UISwitch new];
             toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:row.defaultsKey];
             toggle.onTintColor = [SCIUtils SCIColor_Primary];
+            [self updateSwitchAppearance:toggle];
             
             objc_setAssociatedObject(toggle, rowStaticRef, row, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             
@@ -403,9 +404,22 @@ static char rowStaticRef[] = "row";
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
+- (void)updateSwitchAppearance:(UISwitch *)toggle {
+    if (toggle.isOn) {
+        toggle.thumbTintColor = [UIColor whiteColor];
+    } else {
+        toggle.thumbTintColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+            return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+                ? [UIColor colorWithWhite:0.48 alpha:1.0]
+                : [UIColor colorWithWhite:0.75 alpha:1.0];
+        }];
+    }
+}
+
 // MARK: - Actions
 
 - (void)switchChanged:(UISwitch *)sender {
+    [self updateSwitchAppearance:sender];
     SCISetting *row = objc_getAssociatedObject(sender, rowStaticRef);
     [[NSUserDefaults standardUserDefaults] setBool:sender.isOn forKey:row.defaultsKey];
     
