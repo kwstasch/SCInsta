@@ -755,6 +755,7 @@ static BOOL SCIsExpirationViewControllerClass(Class cls) {
 }
 
 // Bypass Beta / TestFlight full-screen lockout and update alerts
+// Bypass Beta / TestFlight full-screen lockout and update alerts (Zero-delay version)
 %hook UIViewController
 
 - (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
@@ -789,7 +790,7 @@ static BOOL SCIsExpirationViewControllerClass(Class cls) {
         }
     }
 
-    // 3. Block full-screen modal if its view hierarchy already contains the TestFlight Beta text
+    // Force-check if already loaded
     if ([viewControllerToPresent isViewLoaded] && SCViewContainsBetaLockoutText(viewControllerToPresent.view)) {
         NSLog(@"[SCInsta] Blocked Beta lockout VC presentation by view text: %@", NSStringFromClass([viewControllerToPresent class]));
         if (completion) completion();
@@ -799,10 +800,48 @@ static BOOL SCIsExpirationViewControllerClass(Class cls) {
     %orig(viewControllerToPresent, flag, completion);
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    %orig(animated);
+
+    if ([self isKindOfClass:[UINavigationController class]] ||
+        [self isKindOfClass:[UITabBarController class]] ||
+        [NSStringFromClass([self class]) isEqualToString:@"IGRootViewController"]) {
+        return;
+    }
+
+    // Make it invisible BEFORE the first frame renders
+    if (SCIsExpirationViewControllerClass([self class]) || SCViewContainsBetaLockoutText(self.view)) {
+        self.view.alpha = 0.0;
+        self.view.hidden = YES;
+        self.view.userInteractionEnabled = NO;
+    }
+}
+
+- (void)viewDidLayoutSubviews {
+    %orig;
+
+    if ([self isKindOfClass:[UINavigationController class]] ||
+        [self isKindOfClass:[UITabBarController class]] ||
+        [NSStringFromClass([self class]) isEqualToString:@"IGRootViewController"]) {
+        return;
+    }
+
+    // Catch subviews added dynamically right before display
+    if (SCIsExpirationViewControllerClass([self class]) || SCViewContainsBetaLockoutText(self.view)) {
+        self.view.alpha = 0.0;
+        self.view.hidden = YES;
+        self.view.userInteractionEnabled = NO;
+        if (self.presentingViewController) {
+            [self dismissViewControllerAnimated:NO completion:nil];
+        } else {
+            [self.view removeFromSuperview];
+        }
+    }
+}
+
 - (void)viewDidAppear:(BOOL)animated {
     %orig(animated);
 
-    // Skip main container controllers so we never accidentally hide the whole app shell
     if ([self isKindOfClass:[UINavigationController class]] ||
         [self isKindOfClass:[UITabBarController class]] ||
         [NSStringFromClass([self class]) isEqualToString:@"IGRootViewController"]) {
@@ -814,6 +853,7 @@ static BOOL SCIsExpirationViewControllerClass(Class cls) {
         if (self.presentingViewController) {
             [self dismissViewControllerAnimated:NO completion:nil];
         } else {
+            self.view.alpha = 0.0;
             self.view.hidden = YES;
             self.view.userInteractionEnabled = NO;
             [self.view removeFromSuperview];
