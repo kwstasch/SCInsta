@@ -712,6 +712,8 @@ shouldPersistLastBugReportId:(id)arg6
 
     return %orig;
 }
+%end
+
 // Bypass forced update prompt by spoofing app version
 %hook NSBundle
 - (id)objectForInfoDictionaryKey:(NSString *)key {
