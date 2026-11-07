@@ -1,3 +1,5 @@
+@interface IGNavigationBarButtonView : UIView
+@end
 #import "../../InstagramHeaders.h"
 #import "../../Settings/SCISettingsViewController.h"
 
