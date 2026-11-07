@@ -18,12 +18,6 @@
         @{
             @"header": @"",
             @"rows": @[
-                [SCISetting linkCellWithTitle:@"Donate" subtitle:@"Consider donating to support this tweak's development!" icon:[SCISymbol symbolWithName:@"heart.circle.fill" color:[UIColor systemPinkColor] size:20.0] url:@"https://ko-fi.com/SoCuul"]
-            ]
-        },
-        @{
-            @"header": @"",
-            @"rows": @[
                 [SCISetting navigationCellWithTitle:@"General"
                                            subtitle:@""
                                                icon:[SCISymbol symbolWithName:@"gear"]
