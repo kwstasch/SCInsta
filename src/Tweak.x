@@ -714,45 +714,124 @@ shouldPersistLastBugReportId:(id)arg6
 }
 %end
 
-// Bypass forced update prompt by spoofing app version
-// Bypass forced update prompt by spoofing app version
-%hook NSBundle
-- (id)objectForInfoDictionaryKey:(NSString *)key {
-    if ([key isEqualToString:@"CFBundleShortVersionString"] || [key isEqualToString:@"CFBundleVersion"]) {
-        return @"999.0.0";
+/////////////////////////////////////////////////////////////////////////////
+
+// Helper: Recursively check if a view or its subviews contain the Beta / TestFlight lockout text
+static BOOL SCViewContainsBetaLockoutText(UIView *view) {
+    if (!view) return NO;
+
+    if ([view isKindOfClass:[UILabel class]]) {
+        NSString *text = ((UILabel *)view).text ?: @"";
+        if ([text localizedCaseInsensitiveContainsString:@"TestFlight"] ||
+            [text localizedCaseInsensitiveContainsString:@"Instagram Beta"] ||
+            [text localizedCaseInsensitiveContainsString:@"Ενημέρωση του Instagram Beta"] ||
+            [text localizedCaseInsensitiveContainsString:@"Update Instagram Beta"]) {
+            return YES;
+        }
+    } else if ([view isKindOfClass:[UIButton class]]) {
+        NSString *title = [((UIButton *)view) titleForState:UIControlStateNormal] ?: @"";
+        if ([title localizedCaseInsensitiveContainsString:@"Instagram Beta"] ||
+            [title localizedCaseInsensitiveContainsString:@"TestFlight"]) {
+            return YES;
+        }
     }
-    return %orig;
+
+    for (UIView *subview in view.subviews) {
+        if (SCViewContainsBetaLockoutText(subview)) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
-- (NSDictionary *)infoDictionary {
-    NSDictionary *orig = %orig;
-    NSMutableDictionary *modified = [orig mutableCopy];
-    modified[@"CFBundleShortVersionString"] = @"999.0.0";
-    modified[@"CFBundleVersion"] = @"999.0.0";
-    return modified;
+static BOOL SCIsExpirationViewControllerClass(Class cls) {
+    if (!cls) return NO;
+    NSString *className = NSStringFromClass(cls);
+    return ([className localizedCaseInsensitiveContainsString:@"Expiration"] ||
+            [className localizedCaseInsensitiveContainsString:@"Lockout"] ||
+            [className localizedCaseInsensitiveContainsString:@"Dogfood"] ||
+            [className localizedCaseInsensitiveContainsString:@"AppUpdate"] ||
+            [className localizedCaseInsensitiveContainsString:@"ForceUpdate"]);
 }
-%end
 
-// Fallback: intercept and cancel update alert presentation
+// Bypass Beta / TestFlight full-screen lockout and update alerts
 %hook UIViewController
+
 - (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
+    if (!viewControllerToPresent) {
+        %orig(viewControllerToPresent, flag, completion);
+        return;
+    }
+
+    // 1. Block known expiration/lockout ViewControllers by class name
+    if (SCIsExpirationViewControllerClass([viewControllerToPresent class])) {
+        NSLog(@"[SCInsta] Blocked expiration VC presentation by class: %@", NSStringFromClass([viewControllerToPresent class]));
+        if (completion) completion();
+        return;
+    }
+
+    // 2. Block UIAlertController update prompts
     if ([viewControllerToPresent isKindOfClass:[UIAlertController class]]) {
         UIAlertController *alert = (UIAlertController *)viewControllerToPresent;
         NSString *title = alert.title ?: @"";
         NSString *message = alert.message ?: @"";
         NSString *combined = [NSString stringWithFormat:@"%@ %@", title, message];
-        
-        // Check if this is an update prompt
+
         if ([combined localizedCaseInsensitiveContainsString:@"update"] ||
             [combined localizedCaseInsensitiveContainsString:@"ενημέρωση"] ||
             [combined localizedCaseInsensitiveContainsString:@"βερσιόν"] ||
-            [combined localizedCaseInsensitiveContainsString:@"version"]) {
+            [combined localizedCaseInsensitiveContainsString:@"version"] ||
+            [combined localizedCaseInsensitiveContainsString:@"TestFlight"] ||
+            [combined localizedCaseInsensitiveContainsString:@"Instagram Beta"]) {
             NSLog(@"[SCInsta] Blocked update alert: %@", combined);
-            // Don't present the alert
             if (completion) completion();
             return;
         }
     }
+
+    // 3. Block full-screen modal if its view hierarchy already contains the TestFlight Beta text
+    if ([viewControllerToPresent isViewLoaded] && SCViewContainsBetaLockoutText(viewControllerToPresent.view)) {
+        NSLog(@"[SCInsta] Blocked Beta lockout VC presentation by view text: %@", NSStringFromClass([viewControllerToPresent class]));
+        if (completion) completion();
+        return;
+    }
+
     %orig(viewControllerToPresent, flag, completion);
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig(animated);
+
+    // Skip main container controllers so we never accidentally hide the whole app shell
+    if ([self isKindOfClass:[UINavigationController class]] ||
+        [self isKindOfClass:[UITabBarController class]] ||
+        [NSStringFromClass([self class]) isEqualToString:@"IGRootViewController"]) {
+        return;
+    }
+
+    if (SCIsExpirationViewControllerClass([self class]) || SCViewContainsBetaLockoutText(self.view)) {
+        NSLog(@"[SCInsta] Dismissing/hiding active Beta Lockout VC: %@", NSStringFromClass([self class]));
+        if (self.presentingViewController) {
+            [self dismissViewControllerAnimated:NO completion:nil];
+        } else {
+            self.view.hidden = YES;
+            self.view.userInteractionEnabled = NO;
+            [self.view removeFromSuperview];
+        }
+    }
+}
+
+%end
+
+// Prevent Instagram from replacing rootViewController with the Beta expiration screen
+%hook UIWindow
+- (void)setRootViewController:(UIViewController *)rootViewController {
+    if (SCIsExpirationViewControllerClass([rootViewController class])) {
+        NSLog(@"[SCInsta] Blocked setting expiration VC as rootViewController: %@", NSStringFromClass([rootViewController class]));
+        if (self.rootViewController != nil) {
+            return;
+        }
+    }
+    %orig(rootViewController);
 }
 %end
