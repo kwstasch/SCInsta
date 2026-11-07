@@ -712,4 +712,13 @@ shouldPersistLastBugReportId:(id)arg6
 
     return %orig;
 }
+// Bypass forced update prompt by spoofing app version
+%hook NSBundle
+- (id)objectForInfoDictionaryKey:(NSString *)key {
+    if ([key isEqualToString:@"CFBundleShortVersionString"] || [key isEqualToString:@"CFBundleVersion"]) {
+        // Return a high version number to satisfy Instagram's minimum version check
+        return @"999.0.0";
+    }
+    return %orig;
+}
 %end
