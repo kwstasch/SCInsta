@@ -266,7 +266,7 @@
         @{
             @"header": @"Credits",
             @"rows": @[
-                [SCISetting linkCellWithTitle:@"Developer" subtitle:@"http_kwstas" imageUrl:@"https://i.imgur.com/c9CbytZ.png" url:@"https://github.com/kwstasch"],
+                [SCISetting linkCellWithTitle:@"Developer" subtitle:@"thespecialist.gr" imageUrl:@"https://i.imgur.com/c9CbytZ.png" url:@"https://thespecialist.gr"],
                 [SCISetting linkCellWithTitle:@"View Repo" subtitle:@"View the tweak's source code on GitHub" imageUrl:@"https://i.imgur.com/BBUNzeP.png" url:@"https://github.com/kwstasch/SCInsta"]
             ],
             @"footer": [NSString stringWithFormat:@"DopaReset %@\n\nInstagram v%@", SCIVersionString, [SCIUtils IGVersionString]]
