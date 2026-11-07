@@ -43,7 +43,6 @@ static char rowStaticRef[] = "row";
         self.sections = [mutableSections copy];
     }
     
-    
     return self;
 }
 
@@ -51,17 +50,138 @@ static char rowStaticRef[] = "row";
     return [self initWithTitle:[SCITweakSettings title] sections:[SCITweakSettings sections] reduceMargin:YES];
 }
 
+// MARK: - Monochrome Luxury Header View
+
+- (UIView *)buildMonochromeHeaderView {
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 130)];
+    headerView.backgroundColor = [UIColor clearColor];
+
+    // Card background
+    UIView *card = [[UIView alloc] init];
+    card.translatesAutoresizingMaskIntoConstraints = NO;
+    card.backgroundColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor colorWithWhite:0.12 alpha:1.0]
+            : [UIColor colorWithWhite:0.96 alpha:1.0];
+    }];
+    card.layer.cornerRadius = 16.0;
+    card.layer.cornerCurve = kCACornerCurveContinuous;
+    card.layer.borderWidth = 0.5;
+    card.layer.borderColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor colorWithWhite:0.25 alpha:1.0]
+            : [UIColor colorWithWhite:0.85 alpha:1.0];
+    }].CGColor;
+    card.clipsToBounds = YES;
+    [headerView addSubview:card];
+
+    // Icon Container
+    UIView *iconBox = [[UIView alloc] init];
+    iconBox.translatesAutoresizingMaskIntoConstraints = NO;
+    iconBox.backgroundColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor whiteColor]
+            : [UIColor blackColor];
+    }];
+    iconBox.layer.cornerRadius = 12.0;
+    iconBox.layer.cornerCurve = kCACornerCurveContinuous;
+    [card addSubview:iconBox];
+
+    // Icon Image
+    UIImageView *iconImageView = [[UIImageView alloc] init];
+    iconImageView.translatesAutoresizingMaskIntoConstraints = NO;
+    UIImageSymbolConfiguration *symCfg = [UIImageSymbolConfiguration configurationWithPointSize:20 weight:UIImageSymbolWeightSemibold];
+    iconImageView.image = [UIImage systemImageNamed:@"sparkles" withConfiguration:symCfg];
+    iconImageView.tintColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor blackColor]
+            : [UIColor whiteColor];
+    }];
+    iconImageView.contentMode = UIViewContentModeScaleAspectFit;
+    [iconBox addSubview:iconImageView];
+
+    // Title Label
+    UILabel *titleLabel = [[UILabel alloc] init];
+    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    titleLabel.text = @"DOPARESET";
+    titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightBold];
+    titleLabel.textColor = [UIColor labelColor];
+    [card addSubview:titleLabel];
+
+    // Subtitle Label
+    UILabel *subtitleLabel = [[UILabel alloc] init];
+    subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    subtitleLabel.text = @"Dopamine-free Instagram experience";
+    subtitleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightRegular];
+    subtitleLabel.textColor = [UIColor secondaryLabelColor];
+    [card addSubview:subtitleLabel];
+
+    // Version Pill Badge
+    UIView *pill = [[UIView alloc] init];
+    pill.translatesAutoresizingMaskIntoConstraints = NO;
+    pill.backgroundColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor colorWithWhite:0.22 alpha:1.0]
+            : [UIColor colorWithWhite:0.88 alpha:1.0];
+    }];
+    pill.layer.cornerRadius = 10.0;
+    pill.clipsToBounds = YES;
+    [card addSubview:pill];
+
+    UILabel *pillLabel = [[UILabel alloc] init];
+    pillLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    pillLabel.text = SCIVersionString;
+    pillLabel.font = [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightMedium];
+    pillLabel.textColor = [UIColor labelColor];
+    [pill addSubview:pillLabel];
+
+    // Layout Constraints
+    [NSLayoutConstraint activateConstraints:@[
+        [card.topAnchor constraintEqualToAnchor:headerView.topAnchor constant:12],
+        [card.leadingAnchor constraintEqualToAnchor:headerView.leadingAnchor constant:16],
+        [card.trailingAnchor constraintEqualToAnchor:headerView.trailingAnchor constant:-16],
+        [card.bottomAnchor constraintEqualToAnchor:headerView.bottomAnchor constant:-8],
+
+        [iconBox.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:14],
+        [iconBox.centerYAnchor constraintEqualToAnchor:card.centerYAnchor],
+        [iconBox.widthAnchor constraintEqualToConstant:46],
+        [iconBox.heightAnchor constraintEqualToConstant:46],
+
+        [iconImageView.centerXAnchor constraintEqualToAnchor:iconBox.centerXAnchor],
+        [iconImageView.centerYAnchor constraintEqualToAnchor:iconBox.centerYAnchor],
+
+        [titleLabel.leadingAnchor constraintEqualToAnchor:iconBox.trailingAnchor constant:12],
+        [titleLabel.topAnchor constraintEqualToAnchor:iconBox.topAnchor constant:3],
+
+        [subtitleLabel.leadingAnchor constraintEqualToAnchor:titleLabel.leadingAnchor],
+        [subtitleLabel.bottomAnchor constraintEqualToAnchor:iconBox.bottomAnchor constant:-3],
+
+        [pill.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-14],
+        [pill.centerYAnchor constraintEqualToAnchor:card.centerYAnchor],
+        [pill.heightAnchor constraintEqualToConstant:20],
+
+        [pillLabel.leadingAnchor constraintEqualToAnchor:pill.leadingAnchor constant:7],
+        [pillLabel.trailingAnchor constraintEqualToAnchor:pill.trailingAnchor constant:-7],
+        [pillLabel.centerYAnchor constraintEqualToAnchor:pill.centerYAnchor]
+    ]];
+
+    return headerView;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.navigationController.navigationBar.prefersLargeTitles = NO;
-    self.view.backgroundColor = UIColor.systemBackgroundColor;
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.tableView.dataSource = self;
-    self.tableView.contentInset = UIEdgeInsetsMake(self.reduceMargin ? -30 : -10, 0, 0, 0);
     self.tableView.delegate = self;
+
+    // Attach custom header only on root settings page
+    if ([self.title isEqualToString:[SCITweakSettings title]]) {
+        self.tableView.tableHeaderView = [self buildMonochromeHeaderView];
+    }
 
     [self.view addSubview:self.tableView];
 }
@@ -86,6 +206,40 @@ static char rowStaticRef[] = "row";
     }
 }
 
+// Helper to generate square/squircle monochrome icon backgrounds
+- (UIImage *)monochromeIconImageForSymbol:(SCISymbol *)symbol {
+    CGSize boxSize = CGSizeMake(28, 28);
+    UIGraphicsBeginImageContextWithOptions(boxSize, NO, [UIScreen mainScreen].scale);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+
+    // Squircle path
+    UIBezierPath *path = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(0, 0, 28, 28) cornerRadius:7.0];
+    
+    // Background color: monochrome dark grey / subtle light grey
+    UIColor *bgColor = [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark)
+            ? [UIColor colorWithWhite:0.22 alpha:1.0]
+            : [UIColor colorWithWhite:0.88 alpha:1.0];
+    }];
+    CGContextSetFillColorWithColor(context, bgColor.CGColor);
+    [path fill];
+
+    // Symbol drawing centered
+    UIImage *sym = [symbol image];
+    if (sym) {
+        UIColor *fgColor = [UIColor labelColor];
+        sym = [sym imageWithTintColor:fgColor renderingMode:UIImageRenderingModeAlwaysOriginal];
+        CGFloat symW = sym.size.width;
+        CGFloat symH = sym.size.height;
+        CGRect symRect = CGRectMake((28 - symW) / 2.0, (28 - symH) / 2.0, symW, symH);
+        [sym drawInRect:symRect];
+    }
+
+    UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return result;
+}
+
 // MARK: - UITableViewDataSource
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -103,16 +257,14 @@ static char rowStaticRef[] = "row";
         cellContentConfig.textToSecondaryTextVerticalPadding = 4.5;
     }
     
-    // Icon
+    // Icon (Monochrome squircle box)
     if (row.icon != nil) {
-        cellContentConfig.image = [row.icon image];
-        cellContentConfig.imageProperties.tintColor = row.icon.color;
+        cellContentConfig.image = [self monochromeIconImageForSymbol:row.icon];
     }
     
     // Image url
     if (row.imageUrl != nil) {
         [self loadImageFromURL:row.imageUrl atIndexPath:indexPath forTableView:tableView];
-        
         cellContentConfig.imageToTextPadding = 14;
     }
     
@@ -123,14 +275,14 @@ static char rowStaticRef[] = "row";
         }
             
         case SCITableCellLink: {
-            cellContentConfig.textProperties.color = [UIColor systemBlueColor];
+            cellContentConfig.textProperties.color = [UIColor labelColor];
             cellContentConfig.textProperties.font = [UIFont systemFontOfSize:[UIFont preferredFontForTextStyle:UIFontTextStyleBody].pointSize
                                                                       weight:UIFontWeightMedium];
             
             cell.selectionStyle = UITableViewCellSelectionStyleDefault;
             
-            UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"safari"]];
-            imageView.tintColor = [UIColor systemGray3Color];
+            UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"arrow.up.right"]];
+            imageView.tintColor = [UIColor secondaryLabelColor];
             cell.accessoryView = imageView;
             
             break;
@@ -163,7 +315,6 @@ static char rowStaticRef[] = "row";
                         action:@selector(stepperChanged:)
               forControlEvents:UIControlEventValueChanged];
             
-            // Template subtitle
             if (row.subtitle.length) {
                 cellContentConfig.secondaryText = [self formatString:row.subtitle withValue:stepper.value label:row.label singularLabel:row.singularLabel];
             }
@@ -291,15 +442,12 @@ static char rowStaticRef[] = "row";
 // MARK: - Helper
 
 - (NSString *)formatString:(NSString *)template withValue:(double)value label:(NSString *)label singularLabel:(NSString *)singularLabel {
-    // Singular or plural labels
     NSString *applicableLabel = fabs(value - 1.0) < 0.00001 ? singularLabel : label;
     
-    // Force value to 0 to prevent it being -0
     if (fabs(value) < 0.00001) {
         value = 0.0;
     }
 
-    // Get correct decimal value based on step value
     NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
     formatter.numberStyle = NSNumberFormatterDecimalStyle;
     formatter.minimumFractionDigits = 0;
@@ -345,7 +493,8 @@ static char rowStaticRef[] = "row";
 
             UIListContentConfiguration *config = (UIListContentConfiguration *)cell.contentConfiguration;
             config.image = image;
-            config.imageProperties.maximumSize = CGSizeMake(45, 45);
+            config.imageProperties.maximumSize = CGSizeMake(36, 36);
+            config.imageProperties.cornerRadius = 18.0;
             cell.contentConfiguration = config;
         });
     }];

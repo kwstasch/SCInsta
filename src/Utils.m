@@ -99,8 +99,10 @@
 
 // Colours
 + (UIColor *)SCIColor_Primary {
-    return [UIColor colorWithRed:0/255.0 green:152/255.0 blue:254/255.0 alpha:1];
-};
+    return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *tc) {
+        return (tc.userInterfaceStyle == UIUserInterfaceStyleDark) ? [UIColor whiteColor] : [UIColor blackColor];
+    }];
+}
 
 // Errors
 + (NSError *)errorWithDescription:(NSString *)errorDesc {
