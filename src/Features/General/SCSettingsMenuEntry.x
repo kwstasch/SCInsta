@@ -1,5 +1,3 @@
-@interface IGNavigationBarButtonView : UIView
-@end
 #import "../../InstagramHeaders.h"
 #import "../../Settings/SCISettingsViewController.h"
 
@@ -75,7 +73,7 @@ static BOOL SCViewTreeIsHamburgerButton(UIView *view) {
     %orig(accessibilityIdentifier);
 
     if (SCIsProfileMoreIdentifier(accessibilityIdentifier)) {
-        [self sci_attachSettingsLongPressIfNeeded];
+        [(UIView *)self sci_attachSettingsLongPressIfNeeded];
         if (self.superview && [NSStringFromClass([self.superview class]) containsString:@"NavigationBarButton"]) {
             [self.superview sci_attachSettingsLongPressIfNeeded];
         }
@@ -91,15 +89,15 @@ static BOOL SCViewTreeIsHamburgerButton(UIView *view) {
 
 - (void)didMoveToWindow {
     %orig;
-    if (SCViewTreeIsHamburgerButton(self)) {
-        [self sci_attachSettingsLongPressIfNeeded];
+    if (SCViewTreeIsHamburgerButton((UIView *)self)) {
+        [(UIView *)self sci_attachSettingsLongPressIfNeeded];
     }
 }
 
 - (void)layoutSubviews {
     %orig;
-    if (SCViewTreeIsHamburgerButton(self)) {
-        [self sci_attachSettingsLongPressIfNeeded];
+    if (SCViewTreeIsHamburgerButton((UIView *)self)) {
+        [(UIView *)self sci_attachSettingsLongPressIfNeeded];
     }
 }
 
