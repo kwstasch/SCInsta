@@ -6,6 +6,7 @@
 - (void)didMoveToWindow {
     %orig;
 
+    // Permanent: always add long-press gesture to the profile "more" button
     if ([self.accessibilityIdentifier isEqualToString:@"profile-more-button"]) {
         [self addLongPressGestureRecognizer];
     }
@@ -30,7 +31,7 @@
 }
 %end
 
-// Quick access to tweak settings by holding on home tab button
+// Permanent quick access to tweak settings by holding on home tab button
 %hook IGTabBarButton
 - (void)didMoveToSuperview {
     %orig;
@@ -38,21 +39,16 @@
     // Only work on home/feed tab
     if (![self.accessibilityIdentifier isEqualToString:@"mainfeed-tab"]) return;
     
-    BOOL shortcutEnabled = YES;
-    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"settings_shortcut"] != nil) {
-        shortcutEnabled = [SCIUtils getBoolPref:@"settings_shortcut"];
+    // Permanent: always add long-press gesture (no toggle, no default OFF)
+    UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    longPress.minimumPressDuration = 0.3;
+    
+    // Take precedence over existing gesture recognizers
+    for (UIGestureRecognizer *existing in self.gestureRecognizers) {
+        [existing requireGestureRecognizerToFail:longPress];
     }
     
-    if (shortcutEnabled) {
-        UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
-        longPress.minimumPressDuration = 0.3;
-        
-        for (UIGestureRecognizer *existing in self.gestureRecognizers) {
-            [existing requireGestureRecognizerToFail:longPress];
-        }
-        
-        [self addGestureRecognizer:longPress];
-    }
+    [self addGestureRecognizer:longPress];
 }
 %new - (void)handleLongPress:(UILongPressGestureRecognizer *)sender {
     if (sender.state != UIGestureRecognizerStateBegan) return;
