@@ -1,6 +1,12 @@
 #import "../../InstagramHeaders.h"
 #import "../../Settings/SCISettingsViewController.h"
 
+// Forward interface so clang knows IGNavigationBarButtonView is a UIView
+@interface IGNavigationBarButtonView : UIView
+- (void)sci_addLongPressIfNeeded;
+- (void)sci_handleLongPress:(UILongPressGestureRecognizer *)sender;
+@end
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HAMBURGER / PROFILE MORE BUTTON  (v454+)
 //
