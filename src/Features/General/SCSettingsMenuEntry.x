@@ -7,7 +7,8 @@
     %orig;
 
     // Permanent: always add long-press gesture to the profile "more" button
-    if ([self.accessibilityIdentifier isEqualToString:@"profile-more-button"]) {
+    NSString *aid = self.accessibilityIdentifier;
+    if (aid && ([aid containsString:@"more"] || [aid containsString:@"settings"])) {
         [self addLongPressGestureRecognizer];
     }
 
