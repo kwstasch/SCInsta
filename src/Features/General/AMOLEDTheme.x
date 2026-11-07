@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import "../../InstagramHeaders.h"
 #import "../../Utils.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -7,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 static inline BOOL isAMOLEDActive(UIView *view) {
+    if (!view || !view.window) return NO;
     if (![SCIUtils getBoolPref:@"amoled_mode"]) return NO;
     return (view.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark);
 }
@@ -15,9 +17,14 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
-    if ([SCIUtils getBoolPref:@"amoled_mode"] && self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
-        self.view.backgroundColor = [UIColor blackColor];
-    }
+    if (![SCIUtils getBoolPref:@"amoled_mode"]) return;
+    if (self.traitCollection.userInterfaceStyle != UIUserInterfaceStyleDark) return;
+    if (![self isViewLoaded]) return;
+
+    // Do not interfere with DM chat thread controllers (they use custom chat theme engines)
+    if ([self isKindOfClass:%c(IGDirectThreadViewController)]) return;
+
+    self.view.backgroundColor = [UIColor blackColor];
 }
 
 %end
@@ -28,7 +35,6 @@ static inline BOOL isAMOLEDActive(UIView *view) {
     %orig;
     if (isAMOLEDActive(self)) {
         self.backgroundColor = [UIColor blackColor];
-        self.backgroundView = nil;
     }
 }
 
@@ -39,32 +45,11 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)didMoveToWindow {
     %orig;
     if (isAMOLEDActive(self)) {
+        // Do not break custom DM chat thread decorated background view
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) return;
+
         self.backgroundColor = [UIColor blackColor];
-        self.backgroundView = nil;
-    }
-}
-
-%end
-
-%hook UITableViewCell
-
-- (void)didMoveToWindow {
-    %orig;
-    if (isAMOLEDActive(self)) {
-        self.backgroundColor = [UIColor blackColor];
-        self.contentView.backgroundColor = [UIColor blackColor];
-    }
-}
-
-%end
-
-%hook UICollectionViewCell
-
-- (void)didMoveToWindow {
-    %orig;
-    if (isAMOLEDActive(self)) {
-        self.backgroundColor = [UIColor blackColor];
-        self.contentView.backgroundColor = [UIColor blackColor];
     }
 }
 
