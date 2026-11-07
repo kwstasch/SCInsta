@@ -275,7 +275,7 @@
                 [SCISetting linkCellWithTitle:@"Developer" subtitle:@"SoCuul" imageUrl:@"https://i.imgur.com/c9CbytZ.png" url:@"https://socuul.dev"],
                 [SCISetting linkCellWithTitle:@"View Repo" subtitle:@"View the tweak's source code on GitHub" imageUrl:@"https://i.imgur.com/BBUNzeP.png" url:@"https://github.com/SoCuul/SCInsta"]
             ],
-            @"footer": [NSString stringWithFormat:@"SCInsta %@\n\nInstagram v%@", SCIVersionString, [SCIUtils IGVersionString]]
+            @"footer": [NSString stringWithFormat:@"DopaReset %@\n\nInstagram v%@", SCIVersionString, [SCIUtils IGVersionString]]
         }
     ];
 }
@@ -288,7 +288,7 @@
 ///
 
 + (NSString *)title {
-    return @"SCInsta Settings";
+    return @"DopaReset Settings";
 }
 
 
