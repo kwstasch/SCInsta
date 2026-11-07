@@ -213,7 +213,33 @@
 @end
 
 @interface IGFollowController : NSObject 
-@property IGUser *user;
+@property (nonatomic, strong) IGUser *user;
+@property (nonatomic, strong) UIControl *followButton;
+- (void)updateFollowButtonState;
+- (void)setUserFollowsCurrentUser:(BOOL)arg1;
+- (void)userValueChanged:(id)arg1;
+- (BOOL)showFollowBackState;
+- (BOOL)userFollowsCurrentUser;
+@end
+
+@interface _TtC11IGFollowing18IGFollowController : NSObject 
+@property (nonatomic, strong) IGUser *user;
+@property (nonatomic, strong) UIControl *followButton;
+- (void)updateFollowButtonState;
+- (void)setUserFollowsCurrentUser:(BOOL)arg1;
+- (void)userValueChanged:(id)arg1;
+- (BOOL)showFollowBackState;
+- (BOOL)userFollowsCurrentUser;
+@end
+
+@interface IGFollowButtonTitle : NSObject
++ (id)titleFor:(NSInteger)buttonState viewConfiguration:(id)viewConfiguration userFollowsCurrentUser:(BOOL)userFollowsCurrentUser;
+- (id)titleFor:(NSInteger)buttonState viewConfiguration:(id)viewConfiguration userFollowsCurrentUser:(BOOL)userFollowsCurrentUser;
+@end
+
+@interface _TtC20IGFollowButtonShared19IGFollowButtonTitle : NSObject
++ (id)titleFor:(NSInteger)buttonState viewConfiguration:(id)viewConfiguration userFollowsCurrentUser:(BOOL)userFollowsCurrentUser;
+- (id)titleFor:(NSInteger)buttonState viewConfiguration:(id)viewConfiguration userFollowsCurrentUser:(BOOL)userFollowsCurrentUser;
 @end
 
 @interface IGCoreTextView : UIView
