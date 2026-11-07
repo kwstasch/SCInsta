@@ -715,12 +715,44 @@ shouldPersistLastBugReportId:(id)arg6
 %end
 
 // Bypass forced update prompt by spoofing app version
+// Bypass forced update prompt by spoofing app version
 %hook NSBundle
 - (id)objectForInfoDictionaryKey:(NSString *)key {
     if ([key isEqualToString:@"CFBundleShortVersionString"] || [key isEqualToString:@"CFBundleVersion"]) {
-        // Return a high version number to satisfy Instagram's minimum version check
         return @"999.0.0";
     }
     return %orig;
+}
+
+- (NSDictionary *)infoDictionary {
+    NSDictionary *orig = %orig;
+    NSMutableDictionary *modified = [orig mutableCopy];
+    modified[@"CFBundleShortVersionString"] = @"999.0.0";
+    modified[@"CFBundleVersion"] = @"999.0.0";
+    return modified;
+}
+%end
+
+// Fallback: intercept and cancel update alert presentation
+%hook UIViewController
+- (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
+    if ([viewControllerToPresent isKindOfClass:[UIAlertController class]]) {
+        UIAlertController *alert = (UIAlertController *)viewControllerToPresent;
+        NSString *title = alert.title ?: @"";
+        NSString *message = alert.message ?: @"";
+        NSString *combined = [NSString stringWithFormat:@"%@ %@", title, message];
+        
+        // Check if this is an update prompt
+        if ([combined localizedCaseInsensitiveContainsString:@"update"] ||
+            [combined localizedCaseInsensitiveContainsString:@"ενημέρωση"] ||
+            [combined localizedCaseInsensitiveContainsString:@"βερσιόν"] ||
+            [combined localizedCaseInsensitiveContainsString:@"version"]) {
+            NSLog(@"[SCInsta] Blocked update alert: %@", combined);
+            // Don't present the alert
+            if (completion) completion();
+            return;
+        }
+    }
+    %orig(viewControllerToPresent, flag, completion);
 }
 %end
