@@ -33,7 +33,7 @@
     if ([user respondsToSelector:@selector(followsCurrentUser)]) {
         followsYou = [user followsCurrentUser];
     } else if ([user respondsToSelector:@selector(isFollowingCurrentUser)]) {
-        followsYou = [user isFollowingCurrentUser];
+        followsYou = [(id)user isFollowingCurrentUser];
     }
 
     UIControl *btn = nil;

@@ -209,6 +209,7 @@
 @property NSInteger followStatus;
 @property(copy) NSString *username;
 @property BOOL followsCurrentUser;
+- (BOOL)isFollowingCurrentUser;
 @end
 
 @interface IGFollowController : NSObject 
