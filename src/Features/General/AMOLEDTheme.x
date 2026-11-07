@@ -13,6 +13,36 @@ static inline BOOL isAMOLEDActive(UIView *view) {
     return (view.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark);
 }
 
+static inline BOOL shouldSkipViewController(UIViewController *vc) {
+    if (!vc) return NO;
+
+    // Exclude DM chat thread controllers
+    if ([vc isKindOfClass:%c(IGDirectThreadViewController)]) return YES;
+
+    // Exclude modal overlays and popups (Notes viewer, popovers, transparent sheets)
+    if (vc.modalPresentationStyle == UIModalPresentationOverFullScreen ||
+        vc.modalPresentationStyle == UIModalPresentationOverCurrentContext ||
+        vc.modalPresentationStyle == UIModalPresentationCustom) {
+        return YES;
+    }
+
+    NSString *clsName = NSStringFromClass([vc class]);
+    if ([clsName containsString:@"Notes"] || [clsName containsString:@"Overlay"] || [clsName containsString:@"Prompt"]) {
+        return YES;
+    }
+
+    // If view is intentionally clear/transparent, keep it transparent
+    if ([vc isViewLoaded]) {
+        UIColor *bg = vc.view.backgroundColor;
+        if (!bg || [bg isEqual:[UIColor clearColor]]) return YES;
+        CGFloat a = 1.0;
+        [bg getRed:nil green:nil blue:nil alpha:&a];
+        if (a < 0.5) return YES;
+    }
+
+    return NO;
+}
+
 %hook UIViewController
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -21,8 +51,7 @@ static inline BOOL isAMOLEDActive(UIView *view) {
     if (self.traitCollection.userInterfaceStyle != UIUserInterfaceStyleDark) return;
     if (![self isViewLoaded]) return;
 
-    // Do not interfere with DM chat thread controllers (they use custom chat theme engines)
-    if ([self isKindOfClass:%c(IGDirectThreadViewController)]) return;
+    if (shouldSkipViewController(self)) return;
 
     self.view.backgroundColor = [UIColor blackColor];
 }
@@ -34,12 +63,20 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)didMoveToWindow {
     %orig;
     if (isAMOLEDActive(self)) {
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && shouldSkipViewController(parentVC)) return;
+
         self.backgroundColor = [UIColor blackColor];
     }
 }
 
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && shouldSkipViewController(parentVC)) {
+            %orig(color);
+            return;
+        }
         %orig([UIColor blackColor]);
         return;
     }
@@ -54,7 +91,7 @@ static inline BOOL isAMOLEDActive(UIView *view) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) return;
+        if (parentVC && shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
     }
@@ -63,7 +100,7 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) {
+        if (parentVC && shouldSkipViewController(parentVC)) {
             %orig(color);
             return;
         }
@@ -80,6 +117,9 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)didMoveToWindow {
     %orig;
     if (isAMOLEDActive(self)) {
+        id parentVC = [SCIUtils nearestViewControllerForView:self];
+        if (parentVC && shouldSkipViewController(parentVC)) return;
+
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
     }
@@ -92,9 +132,8 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 - (void)didMoveToWindow {
     %orig;
     if (isAMOLEDActive(self)) {
-        // Exclude message cells inside chat threads
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && [parentVC isKindOfClass:%c(IGDirectThreadViewController)]) return;
+        if (parentVC && shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
