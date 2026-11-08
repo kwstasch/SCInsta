@@ -16,8 +16,13 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 static inline BOOL shouldSkipViewController(UIViewController *vc) {
     if (!vc) return NO;
 
-    // Exclude DM chat thread controllers (message bubbles & chat themes)
-    if ([vc isKindOfClass:%c(IGDirectThreadViewController)]) return YES;
+    // Exclude DM chat thread controllers (message bubbles & chat themes).
+    // IMPORTANT: walk the containment chain. The thread hosts its message list,
+    // composer and nav bar inside *child* view controllers, so only checking the
+    // nearest VC made every cell hook paint the whole conversation black.
+    for (UIViewController *v = vc; v != nil; v = v.parentViewController) {
+        if ([v isKindOfClass:%c(IGDirectThreadViewController)]) return YES;
+    }
 
     // Only inspect modal presentations (Notes viewer, popovers, custom transparent sheets)
     if (vc.presentingViewController != nil) {
@@ -65,7 +70,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
     }
@@ -74,7 +79,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) {
+        if (!parentVC || shouldSkipViewController(parentVC)) {
             %orig(color);
             return;
         }
@@ -92,7 +97,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
     }
@@ -101,7 +106,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) {
+        if (!parentVC || shouldSkipViewController(parentVC)) {
             %orig(color);
             return;
         }
@@ -119,7 +124,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
@@ -129,7 +134,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) {
+        if (!parentVC || shouldSkipViewController(parentVC)) {
             %orig(color);
             return;
         }
@@ -143,7 +148,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
@@ -158,7 +163,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
@@ -168,7 +173,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
 - (void)setBackgroundColor:(UIColor *)color {
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) {
+        if (!parentVC || shouldSkipViewController(parentVC)) {
             %orig(color);
             return;
         }
@@ -182,7 +187,7 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
     %orig;
     if (isAMOLEDActive(self)) {
         id parentVC = [SCIUtils nearestViewControllerForView:self];
-        if (parentVC && shouldSkipViewController(parentVC)) return;
+        if (!parentVC || shouldSkipViewController(parentVC)) return;
 
         self.backgroundColor = [UIColor blackColor];
         self.contentView.backgroundColor = [UIColor blackColor];
