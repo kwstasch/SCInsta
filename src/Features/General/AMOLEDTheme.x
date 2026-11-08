@@ -18,17 +18,41 @@ static BOOL gSCIDMThreadVisible = NO;
 // presenters, drawing/media controllers, etc. Matching a single class missed
 // them, and tinting their full-screen view blacked out the whole chat.
 // Match the whole family by name instead.
-static inline BOOL sci_isDirectThreadClass(Class cls) {
+static inline BOOL sci_classNameContains(Class cls, const char *needle) {
     for (Class c = cls; c != Nil; c = class_getSuperclass(c)) {
         const char *name = class_getName(c);
-        if (name && strstr(name, "DirectThread") != NULL) return YES;
+        if (name && strstr(name, needle) != NULL) return YES;
     }
     return NO;
+}
+
+static inline BOOL sci_isDirectThreadClass(Class cls) {
+    return sci_classNameContains(cls, "DirectThread");
 }
 
 static inline BOOL sci_isDirectThreadController(UIViewController *vc) {
     if (!vc) return NO;
     return sci_isDirectThreadClass(object_getClass(vc));
+}
+
+// Notes are drawn as translucent overlays (immersive viewer, consumption card
+// collections, composer container) and the note itself lives in cells. Theming
+// them painted the note black too, leaving just the keyboard visible.
+static inline BOOL sci_isNotesController(UIViewController *vc) {
+    for (UIViewController *v = vc; v != nil; v = v.parentViewController) {
+        if (sci_classNameContains(object_getClass(v), "Notes")) return YES;
+    }
+    return NO;
+}
+
+// The controller that was actually presented. A child VC has no
+// presentingViewController of its own, which is why the modal checks used to
+// miss transparent viewers hosted inside a navigation/container controller.
+static inline UIViewController *sci_presentationAnchor(UIViewController *vc) {
+    UIViewController *top = vc;
+    while (top.parentViewController != nil) top = top.parentViewController;
+    if (top.presentingViewController != nil) return top;
+    return nil;
 }
 
 static inline BOOL isAlreadyBlack(UIColor *color) {
@@ -54,21 +78,37 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
         if (sci_isDirectThreadController(v)) return YES;
     }
 
-    // Only inspect modal presentations (Notes viewer, popovers, custom transparent sheets)
-    if (vc.presentingViewController != nil) {
-        if (vc.modalPresentationStyle == UIModalPresentationOverFullScreen ||
-            vc.modalPresentationStyle == UIModalPresentationOverCurrentContext ||
-            vc.modalPresentationStyle == UIModalPresentationCustom) {
+    // Notes (immersive viewer, details, composer) are translucent overlays over
+    // the inbox. Skip them no matter how they were presented.
+    if (sci_isNotesController(vc)) return YES;
+
+    // Only inspect modal presentations (popovers, custom transparent sheets).
+    // Use the presented root: the visible content is usually a child of it.
+    UIViewController *anchor = sci_presentationAnchor(vc);
+    if (anchor) {
+        if (anchor.modalPresentationStyle == UIModalPresentationOverFullScreen ||
+            anchor.modalPresentationStyle == UIModalPresentationOverCurrentContext ||
+            anchor.modalPresentationStyle == UIModalPresentationCustom) {
             return YES;
         }
 
-        NSString *clsName = NSStringFromClass([vc class]);
-        if ([clsName containsString:@"Notes"] || [clsName containsString:@"Overlay"] || [clsName containsString:@"Prompt"]) {
+        // Containers often report a nil background; inspect the visible child.
+        UIViewController *probe = anchor;
+        if ([probe isKindOfClass:[UINavigationController class]] &&
+            ((UINavigationController *)probe).topViewController != nil) {
+            probe = ((UINavigationController *)probe).topViewController;
+        } else if ([probe isKindOfClass:[UITabBarController class]] &&
+                   ((UITabBarController *)probe).selectedViewController != nil) {
+            probe = ((UITabBarController *)probe).selectedViewController;
+        }
+
+        NSString *clsName = NSStringFromClass([probe class]);
+        if ([clsName containsString:@"Overlay"] || [clsName containsString:@"Prompt"]) {
             return YES;
         }
 
-        if ([vc isViewLoaded]) {
-            UIColor *bg = vc.view.backgroundColor;
+        if ([probe isViewLoaded]) {
+            UIColor *bg = probe.view.backgroundColor;
             if (!bg || [bg isEqual:[UIColor clearColor]]) return YES;
             CGFloat a = 1.0;
             [bg getRed:nil green:nil blue:nil alpha:&a];
