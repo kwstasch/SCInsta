@@ -43,7 +43,8 @@ BOOL dmVisualMsgsViewedButtonEnabled = false;
         @"disable_auto_unmuting_reels": @(YES),
         @"doom_scrolling_reel_count": @(1),
         @"amoled_mode": @(NO),
-        @"follows_you_indicator": @(YES)
+        @"follows_you_indicator": @(YES),
+        @"disable_analytics": @(NO)
     };
     [[NSUserDefaults standardUserDefaults] registerDefaults:sciDefaults];
     
