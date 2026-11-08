@@ -131,12 +131,16 @@ jobs:
                 pip install --force-reinstall https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
                 
                 cd main
-                curl -Lo ipapatch --fail --retry 5 --retry-delay 5 --retry-all-errors \
-                  https://github.com/asdfzxcvbn/ipapatch/releases/download/v2.1.3/ipapatch.macos-arm64 \
-                  || gh release download v2.1.3 --repo asdfzxcvbn/ipapatch --pattern ipapatch.macos-arm64 --clobber
-                if ! file ipapatch | grep -q 'Mach-O'; then
+                if ! curl -Lo ipapatch --fail --retry 5 --retry-delay 5 --retry-all-errors \
+                    https://github.com/asdfzxcvbn/ipapatch/releases/download/v2.1.3/ipapatch.macos-arm64; then
+                  echo "::warning::direct download failed, falling back to gh release download"
+                  gh release download v2.1.3 --repo asdfzxcvbn/ipapatch --pattern ipapatch.macos-arm64 --clobber
+                  # gh writes the asset name, not the local name
+                  mv ipapatch.macos-arm64 ipapatch
+                fi
+                if ! file ipapatch 2>/dev/null | grep -q 'Mach-O'; then
                   echo "::error::ipapatch is not a Mach-O binary (GitHub served an error page)"
-                  head -c 200 ipapatch || true
+                  head -c 200 ipapatch 2>/dev/null || true
                   exit 1
                 fi
                 chmod +x ipapatch
