@@ -55,6 +55,31 @@ static inline UIViewController *sci_presentationAnchor(UIViewController *vc) {
     return nil;
 }
 
+// The window whose root controller is this controller.
+static inline UIWindow *sci_windowRooting(UIViewController *vc) {
+    UIViewController *top = vc;
+    while (top.parentViewController != nil) top = top.parentViewController;
+    for (UIWindow *window in [UIApplication sharedApplication].windows) {
+        if (window.rootViewController == top) return window;
+    }
+    return nil;
+}
+
+// Debug tools (FLEX and friends) live in their own window on top of the app and
+// are translucent by design. Painting their root view black makes the whole
+// window opaque, so the app behind it disappears.
+static inline BOOL sci_isToolWindow(UIWindow *window) {
+    if (!window) return NO;
+    UIViewController *root = window.rootViewController;
+    if (!root) return NO;
+    if (sci_classNameContains(object_getClass(root), "FLEX")) return YES;
+    if ([root isKindOfClass:[UINavigationController class]]) {
+        UIViewController *top = ((UINavigationController *)root).topViewController;
+        if (top != nil && sci_classNameContains(object_getClass(top), "FLEX")) return YES;
+    }
+    return NO;
+}
+
 static inline BOOL isAlreadyBlack(UIColor *color) {
     if (!color) return NO;
     return [color isEqual:[UIColor blackColor]];
@@ -63,6 +88,7 @@ static inline BOOL isAlreadyBlack(UIColor *color) {
 static inline BOOL isAMOLEDActive(UIView *view) {
     if (gSCIDMThreadVisible) return NO;
     if (!view || !view.window) return NO;
+    if (sci_isToolWindow(view.window)) return NO;
     if (![SCIUtils getBoolPref:@"amoled_mode"]) return NO;
     return (view.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark);
 }
@@ -70,6 +96,11 @@ static inline BOOL isAMOLEDActive(UIView *view) {
 static inline BOOL shouldSkipViewController(UIViewController *vc) {
     if (gSCIDMThreadVisible) return YES;
     if (!vc) return NO;
+
+    // Translucent debug windows (FLEX) must stay translucent.
+    UIWindow *hostWindow = [vc isViewLoaded] ? vc.view.window : nil;
+    if (hostWindow == nil) hostWindow = sci_windowRooting(vc);
+    if (sci_isToolWindow(hostWindow)) return YES;
 
     // Exclude the whole DM conversation family (message bubbles & chat themes),
     // walking the containment chain because the thread hosts its list, composer
