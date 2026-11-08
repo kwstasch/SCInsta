@@ -90,13 +90,33 @@ jobs:
                 cd main
 
                 mkdir -p packages
-                wget "$Instagram_URL" --no-verbose -O packages/com.burbn.instagram.ipa
+                IPA="packages/com.burbn.instagram.ipa"
+
+                # GitHub's /releases/download proxy sometimes answers 504 instead of
+                # redirecting to object storage. Retry, then fall back to the API
+                # (gh), which resolves the asset through a different path.
+                if ! wget "$Instagram_URL" --no-verbose --tries=3 --waitretry=15 --timeout=120 -O "$IPA"; then
+                  echo "::warning::direct download failed, falling back to gh release download"
+                  NAME="${Instagram_URL##*/}"
+                  TAG="${Instagram_URL%"/$NAME"}"
+                  TAG="${TAG##*/}"
+                  gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$NAME" --dir packages --clobber
+                  mv "packages/$NAME" "$IPA"
+                fi
+
+                # Fail early if we got an HTML error page instead of the IPA
+                if [ "$(xxd -p -l 2 "$IPA")" != "504b" ]; then
+                  echo "::error::downloaded file is not a zip/IPA"
+                  head -c 300 "$IPA" || true
+                  exit 1
+                fi
 
                 ls -la packages
                 
               env:
                 THEOS: ${{ github.workspace }}/theos
                 Instagram_URL: ${{ inputs.decrypted_instagram_url }}
+                GH_TOKEN: ${{ github.token }}
 
             - name: Get SCInsta Version
               id: scinsta_version
