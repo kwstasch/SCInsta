@@ -322,6 +322,62 @@ static inline BOOL shouldSkipViewController(UIViewController *vc) {
 
 %end
 
+%hook UISearchBar
+
+- (void)didMoveToWindow {
+    %orig;
+    if (!isAMOLEDActive(self)) return;
+
+    id parentVC = [SCIUtils nearestViewControllerForView:self];
+    if (parentVC && shouldSkipViewController(parentVC)) return;
+    if (isAlreadyBlack(self.backgroundColor)) return;
+
+    self.barTintColor = [UIColor blackColor];
+    self.backgroundColor = [UIColor blackColor];
+}
+
+%end
+
+// The grey pill of a search bar is a UISearchTextField. It is not a cell, so
+// none of the cell hooks reach it, and Instagram sets its colour before it is
+// in a window - where isAMOLEDActive() is still NO. Hook both the setter and
+// the layout pass, but only for that one class so ordinary text fields keep
+// whatever colour their owner wanted.
+static inline BOOL sci_isSearchTextField(UITextField *field) {
+    Class searchFieldClass = NSClassFromString(@"UISearchTextField");
+    if (!searchFieldClass || !field) return NO;
+    return [field isKindOfClass:searchFieldClass];
+}
+
+%hook UITextField
+
+- (void)setBackgroundColor:(UIColor *)color {
+    if (!sci_isSearchTextField(self) || !isAMOLEDActive(self)) {
+        %orig(color);
+        return;
+    }
+
+    id parentVC = [SCIUtils nearestViewControllerForView:self];
+    if (!parentVC || shouldSkipViewController(parentVC) || isAlreadyBlack(color)) {
+        %orig(color);
+        return;
+    }
+    %orig([UIColor blackColor]);
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (!sci_isSearchTextField(self) || !isAMOLEDActive(self)) return;
+
+    id parentVC = [SCIUtils nearestViewControllerForView:self];
+    if (!parentVC || shouldSkipViewController(parentVC)) return;
+    if (isAlreadyBlack(self.backgroundColor)) return;
+
+    self.backgroundColor = [UIColor blackColor];
+}
+
+%end
+
 %hook UINavigationBar
 
 - (void)didMoveToWindow {
