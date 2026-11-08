@@ -27,10 +27,6 @@
 - (void)logStepForwardWithName:(id)arg1;
 @end
 
-@interface IGInstagramAppDelegate : NSObject
-- (_Bool)application:(UIApplication *)application didFinishLaunchingWithOptions:(id)arg2;
-@end
-
 static inline BOOL SCIIsAnalyticsURL(NSURL *url) {
     if (!url) return NO;
     NSString *host = url.host.lowercaseString;
@@ -178,22 +174,5 @@ static inline BOOL SCIIsAnalyticsURL(NSURL *url) {
         return;
     }
     %orig(arg1);
-}
-%end
-
-// MARK: - Layer 5: Disk Cache Purge on Launch
-
-%hook IGInstagramAppDelegate
-- (_Bool)application:(UIApplication *)application didFinishLaunchingWithOptions:(id)arg2 {
-    _Bool orig = %orig(application, arg2);
-    if ([SCIUtils getBoolPref:@"disable_analytics"]) {
-        NSString *analyticsFolder = [[NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"Application Support/com.burbn.instagram/analytics"];
-        NSFileManager *fm = [NSFileManager defaultManager];
-        NSArray *contents = [fm contentsOfDirectoryAtURL:[[NSURL alloc] initFileURLWithPath:analyticsFolder] includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
-        for (NSURL *fileURL in contents) {
-            [fm removeItemAtURL:fileURL error:nil];
-        }
-    }
-    return orig;
 }
 %end
